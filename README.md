@@ -11,4 +11,5 @@ Update parser to be of general use, i.e. if a CORSIKA simulation library exists 
 1. Run basic scripts on Auger CORSIKA simulations stored on grid
 2. Convert basic scripts to run multiple times via jobs submitted to CPU nodes
 3. Make submission scripts for this...
+4. Make first script one that reads in a single steering file, and that steering file will define certain parameters to use for the processing files!
 
