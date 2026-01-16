@@ -1,0 +1,5 @@
+# Ignore CORSIKA files downloaded by hand from Dirac (for testing)
+/TestDiracFiles/
+
+# Ignore Dirac submission files (tested with Frank and they did not work...)
+/Dirac/
