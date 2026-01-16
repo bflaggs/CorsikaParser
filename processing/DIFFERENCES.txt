@@ -1,0 +1,164 @@
+#GetMuAndEM_ForLongFiles_Auger and GetMuAndEM_ForLongFiles_Auger_SIBYLLSTAR_ONLY
+
+Only difference is the amount of data points removed from the fitting process. Longitudinal profile was saved in steps of 1 g/cm2 for Auger simulations, whereas it was saved in steps of 5 g/cm2 for the Sibyll Star Auger simulations.
+
+Fixed? NO
+
+# GetMuAndEM_ForLongFiles and GetMuAndEM_ForLongFiles_Auger
+
+Many differences, most significant is the difference in observation level which can be determined from the observation level in the CORSIKA steering file.
+Output from `diff` command below:
+80,93d79
+< # Comment out old functions, want to fit for Xmax as well...
+< #def GHFunction(XPrime, R, L):
+< #    return (1 + (R * XPrime / L)) ** (1 / (R**2)) * np.exp(-1. * XPrime / (L * R))
+< 
+< #def FitLongitudinalProfile(depths, xmax, chargedParticles, Nmax, RGuess, LGuess):
+< #    XPrimeVals = np.asarray(depths) - xmax
+< #    particleArray = np.asarray(chargedParticles) / Nmax
+< #    popt, pcov = curve_fit(GHFunction, XPrimeVals, particleArray, p0=[RGuess, LGuess])
+< #    perr = np.sqrt(np.diag(pcov))
+< #    RFit = popt[0]
+< #    LFit = popt[1]
+< #    RFitSigma = perr[0]
+< #    LFitSigma = perr[1]
+< #    return RFit, RFitSigma, LFit, LFitSigma
+123,128c109,118
+<     if (shift == True) and (absoluteValue == False):
+<         popt, pcov = curve_fit(GHFunction, depthArray, particleArray, p0=[NmaxGuess, XmaxGuess+100.0, X0Guess, lambGuess], sigma=uncerts)
+<     elif (absoluteValue == True) and (shift == False):
+<         popt, pcov = curve_fit(GHFunctionWithABS, depthArray, particleArray, p0=[NmaxGuess, XmaxGuess, X0Guess, lambGuess], sigma=uncerts)
+<     else:
+<         popt, pcov = curve_fit(GHFunction, depthArray, particleArray, p0=[NmaxGuess, XmaxGuess, X0Guess, lambGuess], sigma=uncerts)
+---
+>     # Insert a try-except statement for poor fits...
+>     try:
+>         if (shift == True) and (absoluteValue == False):
+>             popt, pcov = curve_fit(GHFunction, depthArray, particleArray, p0=[NmaxGuess, XmaxGuess+100.0, X0Guess, lambGuess], sigma=uncerts)
+>         elif (absoluteValue == True) and (shift == False):
+>             popt, pcov = curve_fit(GHFunctionWithABS, depthArray, particleArray, p0=[NmaxGuess, XmaxGuess, X0Guess, lambGuess], sigma=uncerts)
+>         else:
+>             popt, pcov = curve_fit(GHFunction, depthArray, particleArray, p0=[NmaxGuess, XmaxGuess, X0Guess, lambGuess], sigma=uncerts)
+>     except RuntimeError:
+>         return np.inf, np.inf, np.inf, np.inf, np.inf, np.inf
+177,182c167,176
+<     if (shift == True) and (absoluteValue == False):
+<         popt, pcov = curve_fit(AndringaFunction, depthArray, NprimeArray, p0=[XmaxGuess+100.0, RGuess, LGuess], sigma=uncerts)
+<     elif (absoluteValue == True) and (shift == False):
+<         popt, pcov = curve_fit(AndringaFunctionWithABS, depthArray, NprimeArray, p0=[XmaxGuess, RGuess, LGuess], sigma=uncerts)
+<     else:
+<         popt, pcov = curve_fit(AndringaFunction, depthArray, NprimeArray, p0=[XmaxGuess, RGuess, LGuess], sigma=uncerts)
+---
+>     # Insert a try-except statement for poor fits...
+>     try:
+>         if (shift == True) and (absoluteValue == False):
+>             popt, pcov = curve_fit(AndringaFunction, depthArray, NprimeArray, p0=[XmaxGuess+100.0, RGuess, LGuess], sigma=uncerts)
+>         elif (absoluteValue == True) and (shift == False):
+>             popt, pcov = curve_fit(AndringaFunctionWithABS, depthArray, NprimeArray, p0=[XmaxGuess, RGuess, LGuess], sigma=uncerts)
+>         else:
+>             popt, pcov = curve_fit(AndringaFunction, depthArray, NprimeArray, p0=[XmaxGuess, RGuess, LGuess], sigma=uncerts)
+>     except RuntimeError:
+>         return np.inf, np.inf, np.inf, np.inf, np.inf, np.inf
+199a194,201
+> def remove_zeros(listToUpdate, pairedList):
+>     for i in reversed(range(len(listToUpdate))):
+>         if listToUpdate[i] == 0:
+>             del listToUpdate[i]
+>             del pairedList[i]
+>     return listToUpdate, pairedList
+> 
+> 
+211c213
+< ground = 696 / np.cos(args.zen)
+---
+> ground = 870 / np.cos(args.zen)
+224a227,236
+> positrons.pop()
+> electrons.pop()
+> muPlus.pop()
+> muMinus.pop()
+> chargedParticles.pop()
+> depths.pop()
+> positrons.pop()
+> electrons.pop()
+> muPlus.pop()
+> muMinus.pop()
+227,239c239,276
+< Nmax = np.max(chargedParticles)
+< NmaxGuess = np.random.normal(loc=Nmax, scale=0.1*abs(Nmax))
+< XmaxGuess = depths[ixmax]
+< X0Guess = np.random.normal(loc=x0, scale=0.1*abs(x0))
+< lambGuess = np.random.normal(loc=lambdaApprox, scale=0.1*abs(lambdaApprox))
+< 
+< NPrimeValsCORSIKA = np.asarray(chargedParticles) / Nmax
+< RGuess = np.random.normal(loc=Rcorsika, scale=0.1*abs(Rcorsika))
+< LGuess = np.random.normal(loc=Lcorsika, scale=0.1*abs(Lcorsika))
+< 
+< RFit, RFitSigma, LFit, LFitSigma, XmaxFit, XmaxSigma = FitLongitudinalProfile(depths, chargedParticles, NmaxGuess, XmaxGuess, X0Guess, lambGuess, shift=False, absoluteValue=False)
+< RFitShift, RFitSigmaShift, LFitShift, LFitSigmaShift, XmaxFitShift, XmaxSigmaShift = FitLongitudinalProfile(depths, chargedParticles, NmaxGuess, XmaxGuess, X0Guess, lambGuess, shift=True, absoluteValue=False)
+< RFitABS, RFitSigmaABS, LFitABS, LFitSigmaABS, XmaxFitABS, XmaxSigmaABS = FitLongitudinalProfile(depths, chargedParticles, NmaxGuess, XmaxGuess, X0Guess, lambGuess, shift=False, absoluteValue=True)
+---
+> # Remove final 20 points for Auger (b/c of denser slant depth sampling)
+> del depths[-18:]
+> del positrons[-18:]
+> del electrons[-18:]
+> del muPlus[-18:]
+> del muMinus[-18:]
+> del chargedParticles[-18:]
+> 
+> #Nmax = np.max(chargedParticles)
+> Nmax = np.max(totalEM)
+> NmaxGuess = Nmax
+> if ixmax >= len(depths):
+>     XmaxGuess = xmax
+> else:
+>     XmaxGuess = depths[ixmax]
+> #XmaxGuess = depths[ixmax] # Old way, was leading to errors for showers w/ xmax near ground...
+> X0Guess = 0
+> lambGuess = 80.0
+> 
+> # Put removal of zeros after all index calls are done, to ensure all indices are the same
+> #chargedParticles, depthArray = remove_zeros(chargedParticles, depths)
+> 
+> totalEMUpdate = np.array(positrons) + np.array(electrons)
+> totalEMList = totalEMUpdate.tolist()
+> 
+> totalEMList, depths = remove_zeros(totalEMList, depths)
+> 
+> totalEMAfterCuts = np.array(totalEMList)
+> 
+> 
+> #NPrimeValsCORSIKA = np.asarray(chargedParticles) / Nmax
+> NPrimeValsCORSIKA = totalEMAfterCuts / Nmax
+> RGuess = np.sqrt(lambGuess / abs(X0Guess - XmaxGuess))
+> LGuess = np.sqrt(abs(X0Guess - XmaxGuess) * lambGuess)
+> 
+> #RFit, RFitSigma, LFit, LFitSigma, XmaxFit, XmaxSigma = FitLongitudinalProfile(depths, chargedParticles, NmaxGuess, XmaxGuess, X0Guess, lambGuess, shift=False, absoluteValue=False)
+> RFitShift, RFitSigmaShift, LFitShift, LFitSigmaShift, XmaxFitShift, XmaxSigmaShift = FitLongitudinalProfile(depths, totalEMList, NmaxGuess, XmaxGuess, X0Guess, lambGuess, shift=True, absoluteValue=False)
+> #RFitABS, RFitSigmaABS, LFitABS, LFitSigmaABS, XmaxFitABS, XmaxSigmaABS = FitLongitudinalProfile(depths, chargedParticles, NmaxGuess, XmaxGuess, X0Guess, lambGuess, shift=False, absoluteValue=True)
+242,243c279
+< XmaxAndringaFitShift, XmaxAndringaSigmaShift, RAndringaFitShift, RAndringaSigmaShift, LAndringaFitShift, LAndringaSigmaShift = FitLongitudinalProfileAndringa(depths, NPrimeValsCORSIKA, XmaxGuess, RGuess, LGuess, shift=True, absoluteValue=False)
+< XmaxAndringaFitABS, XmaxAndringaSigmaABS, RAndringaFitABS, RAndringaSigmaABS, LAndringaFitABS, LAndringaSigmaABS = FitLongitudinalProfileAndringa(depths, NPrimeValsCORSIKA, XmaxGuess, RGuess, LGuess, shift=False, absoluteValue=True)
+---
+> #XmaxAndringaFitShift, XmaxAndringaSigmaShift, RAndringaFitShift, RAndringaSigmaShift, LAndringaFitShift, LAndringaSigmaShift = FitLongitudinalProfileAndringa(depths, NPrimeValsCORSIKA, XmaxGuess, RGuess, LGuess, shift=True, absoluteValue=False)
+246c282,283
+< print(xmax, round(muPlusGround + muMinusGround), totalEM[ixmax], round(positronsGround + electronsGround), Rcorsika, Lcorsika, RFit, RFitSigma, LFit, LFitSigma, XmaxFit, XmaxSigma, RFitShift, RFitSigmaShift, LFitShift, LFitSigmaShift, XmaxFitShift, XmaxSigmaShift, RFitABS, RFitSigmaABS, LFitABS, LFitSigmaABS, XmaxFitABS, XmaxSigmaABS, XmaxAndringaFit, XmaxAndringaSigma, RAndringaFit, RAndringaSigma, LAndringaFit, LAndringaSigma, XmaxAndringaFitShift, XmaxAndringaSigmaShift, RAndringaFitShift, RAndringaSigmaShift, LAndringaFitShift, LAndringaSigmaShift, XmaxAndringaFitABS, XmaxAndringaSigmaABS, RAndringaFitABS, RAndringaSigmaABS, LAndringaFitABS, LAndringaSigmaABS, end="")
+---
+> #print(xmax, round(muPlusGround + muMinusGround), totalEM[ixmax], round(positronsGround + electronsGround), Rcorsika, Lcorsika, RFit, RFitSigma, LFit, LFitSigma, XmaxFit, XmaxSigma, RFitShift, RFitSigmaShift, LFitShift, LFitSigmaShift, XmaxFitShift, XmaxSigmaShift, RFitABS, RFitSigmaABS, LFitABS, LFitSigmaABS, XmaxFitABS, XmaxSigmaABS, XmaxAndringaFit, XmaxAndringaSigma, RAndringaFit, RAndringaSigma, LAndringaFit, LAndringaSigma, XmaxAndringaFitShift, XmaxAndringaSigmaShift, RAndringaFitShift, RAndringaSigmaShift, LAndringaFitShift, LAndringaSigmaShift, XmaxAndringaFitABS, XmaxAndringaSigmaABS, RAndringaFitABS, RAndringaSigmaABS, LAndringaFitABS, LAndringaSigmaABS, end="")
+> print(xmax, round(muPlusGround + muMinusGround), totalEM[ixmax], round(positronsGround + electronsGround), Rcorsika, Lcorsika, RFitShift, RFitSigmaShift, LFitShift, LFitSigmaShift, XmaxFitShift, XmaxSigmaShift, RAndringaFit, RAndringaSigma, LAndringaFit, LAndringaSigma, XmaxAndringaFit, XmaxAndringaSigma, end="")
+
+Fixed? NO
+
+#muonReaderSTANDARD and muonReaderTHINNED
+
+Differences are only two:
+1. The constants required for reading the CORSIKA file, already has been solved with file I sent to TL...
+2. The weights of the muons and EM particles will be 1.0 for STANDARD (i.e. unthinned) files, but will be sdata[i + 7] for THINNED files
+
+Fixed? NO
+
+#muonReaderTHINNED and muonReaderTHINNED_Auger
+
+Only difference is if the muons with 1 GeV energy will be saved (THINNED_Auger) or if those of 300 GeV will be saved (THINNED). This difference is not important, and probably I will just use the 1 GeV option...
+
+Fixed? NO
