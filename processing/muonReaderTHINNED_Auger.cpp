@@ -17,85 +17,6 @@ using namespace std;
 
 #define PI 3.14159265
 
-/// --------------------------------------------------------------------------------------------
-/// a small set of function to make histograms while reading
-/// --------------------------------------------------------------------------------------------
-class histogram {
-  double binStart  = 0;
-  double binEnd    = 0;
-  int binNumber = 0;
-  double width  = 0;
-public:
-
-  histogram(double a, double b, int c) {
-    binStart  = a;
-    binEnd    = b;
-    binNumber = c;
-    binContent = vector<double> (binNumber, 0.);
-    width = (binEnd - binStart) / (double)binNumber ;
-
-    for (int b = 0; b < binNumber; b++) {
-      edgeLeft.push_back( binStart + width * b );
-    }
-
-    for (int b = 0; b < binNumber; b++) {
-      edgeRight.push_back( binStart + width * (b + 1) );
-    }
-
-    for (int b = 0; b < binNumber; b++) {
-      binCenter.push_back( (edgeRight.at(b) + edgeLeft.at(b)) / 2. );
-    }
-
-
-  };
-
-  ~histogram() {};
-
-  vector<double> binContent;
-  vector<double> binCenter;
-  vector<double> edgeLeft;
-  vector<double> edgeRight;
-  void   SetBinContent (int, double);
-  double GetBinContent (int);
-  double GetBinCenter (int);
-  void   Fill(double);
-  void   Fill(double, double);
-  void   Dump();
-};
-
-void histogram::Fill(double x) {
-  for (int f = 0; f < binNumber; f++) {
-    if ( (edgeLeft.at(f) <= x) && (x < edgeRight.at(f)) ) {
-      binContent.at(f) += 1;
-    }
-  }
-}
-
-void histogram::Fill(double x, double w) {
-  for (int f = 0; f < binNumber; f++) {
-    if ( (edgeLeft.at(f) <= x) && (x < edgeRight.at(f)) ) {
-      binContent.at(f) += w;
-    }
-  }
-}
-
-void histogram::SetBinContent (int bin, double value) {
-  binContent.at(bin) = value;
-}
-
-double histogram::GetBinContent (int bin) {
-  return binContent.at(bin);
-}
-
-double histogram::GetBinCenter (int bin) {
-  return binCenter.at(bin);
-}
-
-void histogram::Dump () {
-  for (int f = 0; f < binNumber; f++) {
-    cout << f << " " << edgeLeft.at(f) << " " << edgeRight.at(f) << " "  << binContent.at(f) << " " << binCenter.at(f) << endl;
-  }
-}
 
 bool getBinary(float g) {
   union
@@ -147,7 +68,6 @@ int main (int argc, char *argv[]) {
   }
 
   std::string filePath = argv[1];
-  // cerr << "Inpath " << filePath << endl;
 
   const int nrecstd = 26216;           // "thinned corsika" record size
   const int numbstd = nrecstd / 4;     // =  6552
@@ -155,17 +75,8 @@ int main (int argc, char *argv[]) {
   const int nsblstd = 312;
   vector<string> possible_headers = {"RUNH", "EVTH", "LONG", "EVTE", "RUNE"};
 
-  //~ ifstream inFile(filePath);
-
   glob_t glob_result;
-  //~ glob("/data/sim/IceCubeUpgrade/CosmicRay/Radio/coreas/data/continuous/star-pattern/proton/lgE_16.0/sin2_0.0/00000*/DAT*", GLOB_TILDE,NULL,&glob_result);
   glob(filePath.c_str(), GLOB_TILDE, NULL, &glob_result);
-
-  /// parameters for histogram
-  int bin_number = 102;
-  double start   = -3.1;
-  double end     = 7.1;
-  histogram hmu(start, end, bin_number);
 
   /// init variables
   bool BROKENflag = false;
@@ -255,8 +166,8 @@ int main (int argc, char *argv[]) {
 
       /// Read block = record --------------------------------------------------------
       while ( is.read((char*)&sdata, sizeof(sdata)) ) { /// get full block of data at once
-        if ( !getBinary( sdata[0] ) ) { /// skip the first  record lenght sdata[0]
-          cerr << "This file is corrupted, this is not a record lenght - beginning of block!" << endl;
+        if ( !getBinary( sdata[0] ) ) { /// skip the first  record length sdata[0]
+          cerr << "This file is corrupted, this is not a record length - beginning of block!" << endl;
           BROKENflag = true;
           break;
         }
@@ -296,20 +207,15 @@ int main (int argc, char *argv[]) {
                 // float t  = sdata[i+6];
                 float w  = sdata[i + 7];
 
+                // Some variables for each muon that might be useful in the future...
                 //~ double pz_norm = -pz/sqrt( pz*pz + py*py + px*px );
                 //~ double theta   = acos( pz_norm); // in degress
                 //~ double zenith  = acos(-pz_norm); // in rad
 
                 double massMu = 0.105658357;
 
-                //~ double c = 2.99792458e8;
-
                 /// Kinetic energy  !!!
-                //~ double ekinMu = sqrt ( px*px*c*c + py*py*c*c + pz*pz*c*c + massMu*massMu*c*c*c*c) - (massMu*c*c) ;
-
                 double ekinMu = sqrt ( px * px + py * py + pz * pz + massMu * massMu) - (massMu) ;
-
-                //~ hmu.Fill(log10(ekinMu));
 
                 double dist;
 
@@ -342,8 +248,6 @@ int main (int argc, char *argv[]) {
                 if ( ekinMu > 1. ) {
                   nMuons1 += w;
                   if ( w > 1. ) {
-                    //~ cout << "Weight of high energy muon is > 1. Something is wrong!" << endl;
-                    //~ cout << ekinMu << ' ' << w << ' ' << particle_id << endl;
                     muonThin1 += 1;
                     thinWeight1 += w;
                   }
