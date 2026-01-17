@@ -96,14 +96,16 @@ def AndringaFunctionWithABS(X, Xmax, R, L):
 def FitLongitudinalProfile(depths, chargedParticles, NmaxGuess, XmaxGuess, X0Guess, lambGuess, shift=False, absoluteValue=False):
 
     if (shift == True) and (absoluteValue == False):
-        depthArray = np.asarray(depths) + 100.0 # Shift all depths by 100 g/cm^2 to see if we get physical results...
+        # Shift all depths by 100 g/cm^2, makes fits more robust against large X0 values
+        depthArray = np.asarray(depths) + 100.0
     else:
         depthArray = np.asarray(depths)
 
     particleArray = np.asarray(chargedParticles)
 
-    # Use Poissonian counting statistics to estimate an uncertainty in the charged particle number
-    # Take uncertainty as ratio of uncertainty in bin to particle number in bin so bins with more particles have less uncertainty than those with less particles
+    # Assume Poissonian-like relative uncertainty for N, i.e. sqrt(N) / N = 1 / sqrt(N)
+    # Only used as an uncertainty estimate in weighting the fit, applying emphasis near Xmax
+    # Not to be used as a true, physical uncertainty, on the fluctuations in N
     uncerts = 1.0 / np.sqrt(particleArray)
 
     # Insert a try-except statement for poor fits...
@@ -156,12 +158,14 @@ def FitLongitudinalProfile(depths, chargedParticles, NmaxGuess, XmaxGuess, X0Gue
 def FitLongitudinalProfileAndringa(depths, NprimeArray, XmaxGuess, RGuess, LGuess, shift=False, absoluteValue=False):
 
     if (shift == True) and (absoluteValue == False):
-        depthArray = np.asarray(depths) + 100.0 # Shift all depths by 100 g/cm^2 to see if we get physical results...
+        # Shift all depths by 100 g/cm^2, makes fits more robust against large X0 values
+        depthArray = np.asarray(depths) + 100.0
     else:
         depthArray = np.asarray(depths)
 
-    # Use Poissonian counting statistics to estimate an uncertainty in the charged particle number
-    # Take uncertainty as ratio of uncertainty in bin to particle number in bin so bins with more particles have less uncertainty than those with less particles
+    # Assume Poissonian-like relative uncertainty for N, i.e. sqrt(N) / N = 1 / sqrt(N)
+    # Only used as an uncertainty estimate in weighting the fit, applying emphasis near Xmax
+    # Not to be used as a true, physical uncertainty, on the fluctuations in N
     uncerts = 1.0 / np.sqrt(NprimeArray)
 
     # Insert a try-except statement for poor fits...
@@ -244,40 +248,29 @@ del muPlus[-18:]
 del muMinus[-18:]
 del chargedParticles[-18:]
 
-#Nmax = np.max(chargedParticles)
 Nmax = np.max(totalEM)
 NmaxGuess = Nmax
+# Prevent errors if xmax is near ground level (i.e. ixmax is last index)
 if ixmax >= len(depths):
     XmaxGuess = xmax
 else:
     XmaxGuess = depths[ixmax]
-#XmaxGuess = depths[ixmax] # Old way, was leading to errors for showers w/ xmax near ground...
 X0Guess = 0
 lambGuess = 80.0
-
-# Put removal of zeros after all index calls are done, to ensure all indices are the same
-#chargedParticles, depthArray = remove_zeros(chargedParticles, depths)
 
 totalEMUpdate = np.array(positrons) + np.array(electrons)
 totalEMList = totalEMUpdate.tolist()
 
+# Put removal of zeros after all index calls are done, to ensure all indices are the same
 totalEMList, depths = remove_zeros(totalEMList, depths)
 
 totalEMAfterCuts = np.array(totalEMList)
 
-
-#NPrimeValsCORSIKA = np.asarray(chargedParticles) / Nmax
 NPrimeValsCORSIKA = totalEMAfterCuts / Nmax
 RGuess = np.sqrt(lambGuess / abs(X0Guess - XmaxGuess))
 LGuess = np.sqrt(abs(X0Guess - XmaxGuess) * lambGuess)
 
-#RFit, RFitSigma, LFit, LFitSigma, XmaxFit, XmaxSigma = FitLongitudinalProfile(depths, chargedParticles, NmaxGuess, XmaxGuess, X0Guess, lambGuess, shift=False, absoluteValue=False)
 RFitShift, RFitSigmaShift, LFitShift, LFitSigmaShift, XmaxFitShift, XmaxSigmaShift = FitLongitudinalProfile(depths, totalEMList, NmaxGuess, XmaxGuess, X0Guess, lambGuess, shift=True, absoluteValue=False)
-#RFitABS, RFitSigmaABS, LFitABS, LFitSigmaABS, XmaxFitABS, XmaxSigmaABS = FitLongitudinalProfile(depths, chargedParticles, NmaxGuess, XmaxGuess, X0Guess, lambGuess, shift=False, absoluteValue=True)
-
 XmaxAndringaFit, XmaxAndringaSigma, RAndringaFit, RAndringaSigma, LAndringaFit, LAndringaSigma = FitLongitudinalProfileAndringa(depths, NPrimeValsCORSIKA, XmaxGuess, RGuess, LGuess, shift=False, absoluteValue=False)
-#XmaxAndringaFitShift, XmaxAndringaSigmaShift, RAndringaFitShift, RAndringaSigmaShift, LAndringaFitShift, LAndringaSigmaShift = FitLongitudinalProfileAndringa(depths, NPrimeValsCORSIKA, XmaxGuess, RGuess, LGuess, shift=True, absoluteValue=False)
 
-
-#print(xmax, round(muPlusGround + muMinusGround), totalEM[ixmax], round(positronsGround + electronsGround), Rcorsika, Lcorsika, RFit, RFitSigma, LFit, LFitSigma, XmaxFit, XmaxSigma, RFitShift, RFitSigmaShift, LFitShift, LFitSigmaShift, XmaxFitShift, XmaxSigmaShift, RFitABS, RFitSigmaABS, LFitABS, LFitSigmaABS, XmaxFitABS, XmaxSigmaABS, XmaxAndringaFit, XmaxAndringaSigma, RAndringaFit, RAndringaSigma, LAndringaFit, LAndringaSigma, XmaxAndringaFitShift, XmaxAndringaSigmaShift, RAndringaFitShift, RAndringaSigmaShift, LAndringaFitShift, LAndringaSigmaShift, XmaxAndringaFitABS, XmaxAndringaSigmaABS, RAndringaFitABS, RAndringaSigmaABS, LAndringaFitABS, LAndringaSigmaABS, end="")
 print(xmax, round(muPlusGround + muMinusGround), totalEM[ixmax], round(positronsGround + electronsGround), Rcorsika, Lcorsika, RFitShift, RFitSigmaShift, LFitShift, LFitSigmaShift, XmaxFitShift, XmaxSigmaShift, RAndringaFit, RAndringaSigma, LAndringaFit, LAndringaSigma, XmaxAndringaFit, XmaxAndringaSigma, end="")
