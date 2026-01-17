@@ -1,7 +1,7 @@
 // To compile:
-// OLD METHOD
-// g++ -O0 -fbounds-check muonReaderTHINNED.cpp -o muonReader -std=c++11 -lm
-// NEW METHOD
+// METHOD 1 (manual command line)
+// g++ -O0 -fbounds-check corsikaReader.cpp -o corsikaReader -std=c++11 -lm
+// METHOD 2 (makefile)
 // Run command "make" in directory where this file exists (also make sure its Makefile exits in the same directory)
 
 #include <iostream>
@@ -67,7 +67,7 @@ int main (int argc, char *argv[]) {
     cerr << "--------------------------------------------------------------------------------\n";
     cerr << "This program counts the muons and e+/- in the air shower at different distances:\n";
     cerr << "You must give the input filename and type of CORSIKA file (thinned or standard)\n";
-    cerr << "Usage is ./muonReader <InputFile1> [InputFile2 InputFile3 ...] --FILE_FLAG\n";
+    cerr << "Usage is ./corsikaReader <InputFile1> [InputFile2 InputFile3 ...] --FILE_FLAG\n";
     cerr << "--FILE_FLAG can be: --thinned or --standard\n";
     cerr << "--------------------------------------------------------------------------------\n";
 
@@ -84,11 +84,11 @@ int main (int argc, char *argv[]) {
   } else if (fileFlag == "--standard") {
     mode = SimType::Standard;   // standard corsika file
   } else {
-    cerr << "--------------------------------------------------------------------------\n";
+    cerr << "-----------------------------------------------------------------------------\n";
     cerr << "Invalid file flag given!\n";
-    cerr << "Usage is ./muonReader <InputFile1> [InputFile2 InputFile3 ...] --FILE_FLAG\n";
+    cerr << "Usage is ./corsikaReader <InputFile1> [InputFile2 InputFile3 ...] --FILE_FLAG\n";
     cerr << "--FILE_FLAG must be either: --thinned or --standard\n";
-    cerr << "--------------------------------------------------------------------------\n";
+    cerr << "-----------------------------------------------------------------------------\n";
     return 0;
   }
 
