@@ -9,6 +9,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("input", type=str, help="Input data files.")
 parser.add_argument("--zen", required=True, type=float, help="Zenith angle of the shower (rad)")
+parser.add_argument("--removeFinal20gcm2", action="store_true", help="Remove final 20 g/cm2 from longitudinal profile before fitting.")
 args = parser.parse_args()
 
 
@@ -195,6 +196,17 @@ def FitLongitudinalProfileAndringa(depths, NprimeArray, XmaxGuess, RGuess, LGues
     return XmaxAndringaFit, XmaxAndringaSigma, RAndringaFit, RAndringaSigma, LAndringaFit, LAndringaSigma
 
 
+# Remove final X points from plot/fit b/c they are not physical
+# My understanding is some part of the shower front reaches ground which causes dip in particle numbers...
+cutNum = args.removeLastXDataPoints
+if cutNum > 0:
+    del depths[-cutNum:]
+    del positrons[-cutNum:]
+    del electrons[-cutNum:]
+    del muPlus[-cutNum:]
+    del muMinus[-cutNum:]
+    del chargedParticles[-cutNum:]
+
 def remove_zeros(listToUpdate, pairedList):
     for i in reversed(range(len(listToUpdate))):
         if listToUpdate[i] == 0:
@@ -224,29 +236,17 @@ muMinusGround = muMinus[indGround]
 positronsGround = positrons[indGround]
 electronsGround = electrons[indGround]
 
-
-# Remove the last point in the longitudinal distributions b/c it is not physical (sometimes below ground)
-# Agnieszka suggested removing the final two points but start with only the final point at first
-depths.pop()
-positrons.pop()
-electrons.pop()
-muPlus.pop()
-muMinus.pop()
-chargedParticles.pop()
-depths.pop()
-positrons.pop()
-electrons.pop()
-muPlus.pop()
-muMinus.pop()
-chargedParticles.pop()
-
-# Remove final 20 points for Auger (b/c of denser slant depth sampling)
-del depths[-18:]
-del positrons[-18:]
-del electrons[-18:]
-del muPlus[-18:]
-del muMinus[-18:]
-del chargedParticles[-18:]
+# Remove final 20g/cm2 from fit because they are not physical
+# My understanding is some part of the shower front reaches ground which causes dip in particle numbers...
+if args.removeFinal20gcm2 == True:
+    depthSpacing = depths[1] - depths[0]
+    numPointsToRemove = int(20.0 / depthSpacing)
+    del depths[-numPointsToRemove:]
+    del positrons[-numPointsToRemove:]
+    del electrons[-numPointsToRemove:]
+    del muPlus[-numPointsToRemove:]
+    del muMinus[-numPointsToRemove:]
+    del chargedParticles[-numPointsToRemove:]
 
 Nmax = np.max(totalEM)
 NmaxGuess = Nmax
