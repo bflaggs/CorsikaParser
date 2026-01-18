@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
-
-# Must supply a directory(s) with the ASCII files
+#
+# File that parses the longitudinal profiles from the CORSIKA .long files
+# and fits the profiles to extract Xmax, R, and L parameters.
+# Also extracts the muon and EM numbers at ground level for crosschecks with
+# particle data block file (read from corsikaReader.cpp).
+#
+# Usage:
+# python3 GetMuAndEM_ForLongFiles_Auger.py <InputLongFile> --zen <ZenithAngleInRadians> [--removeFinal20gcm2]
+#
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -195,18 +202,6 @@ def FitLongitudinalProfileAndringa(depths, NprimeArray, XmaxGuess, RGuess, LGues
 
     return XmaxAndringaFit, XmaxAndringaSigma, RAndringaFit, RAndringaSigma, LAndringaFit, LAndringaSigma
 
-
-# Remove final X points from plot/fit b/c they are not physical
-# My understanding is some part of the shower front reaches ground which causes dip in particle numbers...
-cutNum = args.removeLastXDataPoints
-if cutNum > 0:
-    del depths[-cutNum:]
-    del positrons[-cutNum:]
-    del electrons[-cutNum:]
-    del muPlus[-cutNum:]
-    del muMinus[-cutNum:]
-    del chargedParticles[-cutNum:]
-
 def remove_zeros(listToUpdate, pairedList):
     for i in reversed(range(len(listToUpdate))):
         if listToUpdate[i] == 0:
@@ -226,6 +221,7 @@ if xmax > 1700:  # Sometimes corsika fits of the profile fail
     Rcorsika = -1
     Lcorsika = -1
 
+# TO-DO: Insert a keyword that defines the observation level from either a settings file or command line argument
 ground = 870 / np.cos(args.zen)
 
 indGround = FindGroundIndex(ground, depths)
