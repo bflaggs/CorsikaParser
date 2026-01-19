@@ -128,7 +128,7 @@ int main (int argc, char *argv[]) {
   /// THE MAIN LOOP
   /// --------------------------------------------------------------------------------------------
   /// This reads all input files one by one
-  for (unsigned int k = 1; k < argc - 1; ++k) {
+  for (int k = 1; k < argc - 1; ++k) {
     EVTEcnt = 0;
     BROKENflag = false;
 
@@ -218,7 +218,7 @@ int main (int argc, char *argv[]) {
               numObsLevels = sdata[j * nsblstd + 47]; // Number of observation levels
               obslev = sdata[j * nsblstd + 47 + 1]; // Height of first observation level in cm (will only be 1 obslev if curved surface)
               CurvedObsLevFlag = sdata[j * nsblstd + 168]; // == 1 if observation level is curved, == 0 if flat
-              cout << primaryID << " " << primaryEnergy << ' ' << zenith << ' ' << azimuth << ' ';
+              cout << primaryID << " " << primaryEnergy << " " << zenith << " " << azimuth << " ";
             } else if (head_word == "EVTE") {
               EVTEcnt += 1;
             }
