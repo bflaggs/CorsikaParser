@@ -251,7 +251,10 @@ int main (int argc, char *argv[]) {
 
                 double dist;
 
-                // Distance to shower axis converted to meters, shower axis coords. are defined as (0, 0, 0)
+                // Distance to shower axis converted to meters, shower axis coords. are defined as (0, 0, OBSLEV)
+                // r_shower = sqrt (|d|^2 - (d . n)^2)
+                // d is the vector from particle position to shower core, (x - 0, y - 0, OBSLEV - OBSLEV) = (x, y, 0)
+                // n is the unit vector along the shower axis, n = (sin(zenith)*cos(azimuth), sin(zenith)*sin(azimuth), -cos(zenith))
                 if ( CurvedObsLevFlag == 1 ) {
                   // If observation level is curved then account for curvature of Earth's surface in distance calculation
                   // Need to define necessary variables first
