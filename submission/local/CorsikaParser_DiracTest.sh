@@ -12,9 +12,9 @@ STARTID=10000
 #TOTAL_SUBS=1
 #TOTAL_SUBS=25
 
-SIM_MODEL=EPOSLHC-R
-# SIM_MODEL=QGSIII04
-# SIM_MODEL=SIB23e
+SIM_MODEL=EPOS_LHC-R
+# SIM_MODEL=QGSIII04  --> Needs update
+# SIM_MODEL=Sibyll-2.3e
 
 # ENERGYBLOCK=16.0_16.5
 # ENERGYBLOCK=16.5_17.0
@@ -24,7 +24,7 @@ ENERGYBLOCK=17.0_17.5
 # ENERGYBLOCK=18.5_19.0
 # ENERGYBLOCK=19.0_19.5
 # ENERGYBLOCK=19.5_20.0
-# ENERGYBLOCK=20.0_20.2
+# ENERGYBLOCK=20.0_20.5
 
 PRIMARYNAME=proton
 # PRIMARYNAME=helium
@@ -34,18 +34,22 @@ PRIMARYNAME=proton
 # ==============================
 # Directory definitions
 # ==============================
-HERE="$( cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 ; pwd -P )"  #Where this script is
-SIMSLOC=/auger/prod/d0008/corsika-78010_Auger_lib_FLUKA/run01/$SIM_MODEL/$ENERGYBLOCK/$PRIMARYNAME/  #Where corsika sims are
-TEMPLOC=$HERE/test/TempWorkArea #Directory to do temporary work
-OUTLOC=$HERE/test/CorsikaData/$SIM_MODEL/$ENERGYBLOCK/$PRIMARYNAME/  #Where to save cosika parsed data
+PARSERLOC="$( cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 ; pwd -P )"  # Where this script is
+WORKLOC=PATH_TO_WORK_DIRECTORY  # Define a working directory here
+
+SIMSLOC=/auger/prod/d0008/corsika-78010_Auger_lib_FLUKA/$SIM_MODEL/$PRIMARYNAME/$ENERGYBLOCK/run01  # Where corsika sims are
+TEMPLOC=$WORKLOC/test/TempWorkArea  # Directory to do temporary work
+OUTLOC=$WORKLOC/test/CorsikaData/$SIM_MODEL/$ENERGYBLOCK/$PRIMARYNAME  # Where to save cosika parsed data
 
 
 # Comment for now..., could be used for parallelization later
 #for ((iRUN=0; iRUN<$TOTAL_SUBS; iRUN++))
 #do
 
-cd $HERE
-echo HERE: $HERE
+iRUN=0  # For now, only do one run
+
+cd $PARSERLOC
+echo PARSERLOC: $PARSERLOC
 
 
 let "IDFirst = ($iRUN) * $SIMS_PER_SUB + $STARTID"
@@ -69,8 +73,8 @@ echo Output saved in directory: $OUTLOC
 
 # Load any needed environment variables here...
 
-EXE=$HERE/../processing/corsikaReader
-EXE2=$HERE/../processing/ParseAndFitLongitudinalProfile_Auger.py
+EXE=$PARSERLOC/scripts/corsikaReader
+EXE2=$PARSERLOC/scripts/ParseAndFitLongitudinalProfile_Auger.py
 
 echo Corsika Block Parser: $EXE
 echo Corsika Longitudinal Parser: $EXE2
