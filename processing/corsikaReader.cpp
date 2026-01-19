@@ -1,7 +1,7 @@
 // To compile:
-// OLD METHOD
-// g++ -O0 -fbounds-check muonReaderTHINNED.cpp -o muonReader -std=c++11 -lm
-// NEW METHOD
+// METHOD 1 (manual command line)
+// g++ -O0 -fbounds-check corsikaReader.cpp -o corsikaReader -std=c++11 -lm
+// METHOD 2 (makefile)
 // Run command "make" in directory where this file exists (also make sure its Makefile exits in the same directory)
 
 #include <iostream>
@@ -17,87 +17,10 @@ using namespace std;
 
 #define PI 3.14159265
 
-/// --------------------------------------------------------------------------------------------
-/// a small set of function to make histograms while reading
-/// --------------------------------------------------------------------------------------------
-class histogram {
-  double binStart  = 0;
-  double binEnd    = 0;
-  int binNumber = 0;
-  double width  = 0;
-public:
+// Used for defining the type of corsika simulation
+enum class SimType {Thinned, Standard};
 
-  histogram(double a, double b, int c) {
-    binStart  = a;
-    binEnd    = b;
-    binNumber = c;
-    binContent = vector<double> (binNumber, 0.);
-    width = (binEnd - binStart) / (double)binNumber ;
-
-    for (int b = 0; b < binNumber; b++) {
-      edgeLeft.push_back( binStart + width * b );
-    }
-
-    for (int b = 0; b < binNumber; b++) {
-      edgeRight.push_back( binStart + width * (b + 1) );
-    }
-
-    for (int b = 0; b < binNumber; b++) {
-      binCenter.push_back( (edgeRight.at(b) + edgeLeft.at(b)) / 2. );
-    }
-
-
-  };
-
-  ~histogram() {};
-
-  vector<double> binContent;
-  vector<double> binCenter;
-  vector<double> edgeLeft;
-  vector<double> edgeRight;
-  void   SetBinContent (int, double);
-  double GetBinContent (int);
-  double GetBinCenter (int);
-  void   Fill(double);
-  void   Fill(double, double);
-  void   Dump();
-};
-
-void histogram::Fill(double x) {
-  for (int f = 0; f < binNumber; f++) {
-    if ( (edgeLeft.at(f) <= x) && (x < edgeRight.at(f)) ) {
-      binContent.at(f) += 1;
-    }
-  }
-}
-
-void histogram::Fill(double x, double w) {
-  for (int f = 0; f < binNumber; f++) {
-    if ( (edgeLeft.at(f) <= x) && (x < edgeRight.at(f)) ) {
-      binContent.at(f) += w;
-    }
-  }
-}
-
-void histogram::SetBinContent (int bin, double value) {
-  binContent.at(bin) = value;
-}
-
-double histogram::GetBinContent (int bin) {
-  return binContent.at(bin);
-}
-
-double histogram::GetBinCenter (int bin) {
-  return binCenter.at(bin);
-}
-
-void histogram::Dump () {
-  for (int f = 0; f < binNumber; f++) {
-    cout << f << " " << edgeLeft.at(f) << " " << edgeRight.at(f) << " "  << binContent.at(f) << " " << binCenter.at(f) << endl;
-  }
-}
-
-bool getBinary(float g) {
+bool getBinary(float g, bool thinned) {
   union
   {
     float input; // assumes sizeof(float) == sizeof(int)
@@ -114,7 +37,12 @@ bool getBinary(float g) {
     int   output;
   } data2;
 
-  data1.input = 3.67252e-41;
+  if (thinned) {
+    data1.input = 3.67252e-41; // must be this for thinned files
+  } else {
+    data1.input = 3.21346e-41; // must be this for non-thinned (standard) files
+  }
+
   data1a.input = 4.59037e-41;
   data2.input = g;
 
@@ -128,7 +56,6 @@ bool getBinary(float g) {
   return false;
 }
 
-
 /// --------------------------------------------------------------------------------------------
 /// MAIN PART - READING.....
 /// --------------------------------------------------------------------------------------------
@@ -136,36 +63,51 @@ bool getBinary(float g) {
 
 int main (int argc, char *argv[]) {
 
-  if (argc < 2) {
-    cerr << "------------------------------------------------------\n";
-    cerr << "This program counts the muons in the air shower:\n";
-    cerr << "You must give in the output and input file\n";
-    cerr << "Usage is ./muonReader <InputFileName>\n";
-    cerr << "------------------------------------------------------\n";
+  if (argc < 3) {
+    cerr << "--------------------------------------------------------------------------------\n";
+    cerr << "This program counts the muons and e+/- in the air shower at different distances:\n";
+    cerr << "You must give the input filename and type of CORSIKA file (thinned or standard)\n";
+    cerr << "Usage is ./corsikaReader <InputFile1> [InputFile2 InputFile3 ...] --FILE_FLAG\n";
+    cerr << "--FILE_FLAG can be: --thinned or --standard\n";
+    cerr << "--------------------------------------------------------------------------------\n";
 
     return 0;
   }
 
   std::string filePath = argv[1];
-  // cerr << "Inpath " << filePath << endl;
+  std::string fileFlag = argv[argc - 1];
 
-  const int nrecstd = 26216;           // "thinned corsika" record size
-  const int numbstd = nrecstd / 4;     // =  6552
-  float sdata[numbstd];                // to read a single corsika record thinned data
-  const int nsblstd = 312;
+  SimType mode;
+
+  if (fileFlag == "--thinned") {
+    mode = SimType::Thinned;   // thinned corsika file
+  } else if (fileFlag == "--standard") {
+    mode = SimType::Standard;   // standard corsika file
+  } else {
+    cerr << "-----------------------------------------------------------------------------\n";
+    cerr << "Invalid file flag given!\n";
+    cerr << "Usage is ./corsikaReader <InputFile1> [InputFile2 InputFile3 ...] --FILE_FLAG\n";
+    cerr << "--FILE_FLAG must be either: --thinned or --standard\n";
+    cerr << "-----------------------------------------------------------------------------\n";
+    return 0;
+  }
+
+  // Ternary operations
+  // If mode is Thinned, then use "thinned corsika" record size, else use "standard corsika" record size
+  const int nrecstd = (mode == SimType::Thinned) ? 26216 : 22940;
+  const int nsblstd = (mode == SimType::Thinned) ? 312 : 273;
+
+  // Other constants
+  const int numbstd = nrecstd / 4;     // = 6554 for "thinned corsika", = 5735 for "standard corsika"
+  float sdata[numbstd];                // to read data for a single corsika record
+
+  // Constant for ternary operation to define particle weights in data block
+  const bool isThin = (mode == SimType::Thinned) ? true : false;
+
   vector<string> possible_headers = {"RUNH", "EVTH", "LONG", "EVTE", "RUNE"};
 
-  //~ ifstream inFile(filePath);
-
   glob_t glob_result;
-  //~ glob("/data/sim/IceCubeUpgrade/CosmicRay/Radio/coreas/data/continuous/star-pattern/proton/lgE_16.0/sin2_0.0/00000*/DAT*", GLOB_TILDE,NULL,&glob_result);
   glob(filePath.c_str(), GLOB_TILDE, NULL, &glob_result);
-
-  /// parameters for histogram
-  int bin_number = 102;
-  double start   = -3.1;
-  double end     = 7.1;
-  histogram hmu(start, end, bin_number);
 
   /// init variables
   bool BROKENflag = false;
@@ -185,9 +127,8 @@ int main (int argc, char *argv[]) {
   /// --------------------------------------------------------------------------------------------
   /// THE MAIN LOOP
   /// --------------------------------------------------------------------------------------------
-  /// This reads all files one by one
-  //~ for(auto t=fileList.begin(); t!=fileList.end(); ++t) {
-  for (unsigned int k = 1; k < argc; ++k) {
+  /// This reads all input files one by one
+  for (unsigned int k = 1; k < argc - 1; ++k) {
     EVTEcnt = 0;
     BROKENflag = false;
 
@@ -255,8 +196,8 @@ int main (int argc, char *argv[]) {
 
       /// Read block = record --------------------------------------------------------
       while ( is.read((char*)&sdata, sizeof(sdata)) ) { /// get full block of data at once
-        if ( !getBinary( sdata[0] ) ) { /// skip the first  record lenght sdata[0]
-          cerr << "This file is corrupted, this is not a record lenght - beginning of block!" << endl;
+        if ( !getBinary( sdata[0], isThin ) ) { /// skip the first  record length sdata[0]
+          cerr << "This file is corrupted, this is not a record length - beginning of block!" << endl;
           BROKENflag = true;
           break;
         }
@@ -294,22 +235,19 @@ int main (int argc, char *argv[]) {
                 float x  = sdata[i+4];
                 float y  = sdata[i+5];
                 // float t  = sdata[i+6];
-                float w  = sdata[i + 7];
 
+                // Set weights from data block for thinned showers, else set weights to 1.0 for standard showers
+                float w = isThin ? sdata[i+7] : 1.0;
+
+                // Some variables for each muon that might be useful in the future...
                 //~ double pz_norm = -pz/sqrt( pz*pz + py*py + px*px );
                 //~ double theta   = acos( pz_norm); // in degress
                 //~ double zenith  = acos(-pz_norm); // in rad
 
                 double massMu = 0.105658357;
 
-                //~ double c = 2.99792458e8;
-
                 /// Kinetic energy  !!!
-                //~ double ekinMu = sqrt ( px*px*c*c + py*py*c*c + pz*pz*c*c + massMu*massMu*c*c*c*c) - (massMu*c*c) ;
-
                 double ekinMu = sqrt ( px * px + py * py + pz * pz + massMu * massMu) - (massMu) ;
-
-                //~ hmu.Fill(log10(ekinMu));
 
                 double dist;
 
@@ -341,9 +279,9 @@ int main (int argc, char *argv[]) {
 
                 if ( ekinMu > 1. ) {
                   nMuons1 += w;
+
+                  // For testing thinning effects
                   if ( w > 1. ) {
-                    //~ cout << "Weight of high energy muon is > 1. Something is wrong!" << endl;
-                    //~ cout << ekinMu << ' ' << w << ' ' << particle_id << endl;
                     muonThin1 += 1;
                     thinWeight1 += w;
                   }
@@ -351,6 +289,8 @@ int main (int argc, char *argv[]) {
 
                 if ( ekinMu > 500. ) {
                   nMuons500 += w;
+
+                  // For testing thinning effects
                   if (w > 1. ) {
                     muonThin500 += 1;
                     thinWeight500 += w;
@@ -449,7 +389,9 @@ int main (int argc, char *argv[]) {
                 float x  = sdata[i+4];
                 float y  = sdata[i+5];
                 // float t  = sdata[i+6];
-                float wEM  = sdata[i + 7];
+
+                // Set weights from data block for thinned showers, else set weights to 1.0 for standard showers
+                float wEM = isThin ? sdata[i+7] : 1.0;
 
                 double distEM;
 
@@ -567,13 +509,14 @@ int main (int argc, char *argv[]) {
           }
         }
         /// end of the record
-        if ( !getBinary( sdata[21 * nsblstd + 1] ) ) {
-          cerr << "This file is corrupted, this is not a record lenght - end of block!" << endl;
+        if ( !getBinary( sdata[21 * nsblstd + 1], isThin ) ) {
+          cerr << "This file is corrupted, this is not a record length - end of block!" << endl;
           BROKENflag = true;
           break;
         }
       }
 
+      // Round the number of particles to nearest integer, since weights can be fractional in thinned showers
       nMuons = round(nMuons);
       nMuons1 = round(nMuons1);
       nMuons500 = round(nMuons500);
@@ -639,7 +582,6 @@ int main (int argc, char *argv[]) {
            << nEMDist650 << " " << nEMDist700 << " " << nEMDist750 << " " << nEMDist800 << " "
            << nEMDist850 << " " << nEMDist900 << " " << nEMDist950 << " " << nEMDist1000 << endl;
 
-      // cerr << "Number of showers inside file: " << EVTEcnt << " " << nrShow <<  endl;
       if ( BROKENflag || !(EVTEcnt == nrShow) ) {
         cerr << "Files is broken: not enough EVTE or garbage word is wrong " << file_ << endl;
         break;
@@ -647,7 +589,6 @@ int main (int argc, char *argv[]) {
       is.close();
     }
   }
-
   return 0;
 }
 
