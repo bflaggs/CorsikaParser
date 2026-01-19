@@ -4,10 +4,10 @@ obj = $(ccsrc:.cpp=.o)
 LDFLAGS = -std=c++11 -lm
 CXXFLAGS =  -O0 -fbounds-check -ggdb -Wall -lz
 
-muonReader: $(obj)
+corsikaReader: $(obj)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 .PHONY: clean
 clean:
-	rm $(obj) muonReader
+	rm $(obj) corsikaReader
 

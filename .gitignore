@@ -3,3 +3,7 @@
 
 # Ignore Dirac submission files (tested with Frank and they did not work...)
 /Dirac/
+
+# Ignore compiled binaries and build files
+/processing/corsikaReader
+/processing/corsikaReader.o
