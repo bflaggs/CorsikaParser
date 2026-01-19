@@ -6,7 +6,7 @@
 # particle data block file (read from corsikaReader.cpp).
 #
 # Usage:
-# python3 GetMuAndEM_ForLongFiles_Auger.py <InputLongFile> --zen <ZenithAngleInRadians> [--removeFinal20gcm2]
+# python3 ParseAndFitLongitudinalProfile_Auger.py <InputLongFile> --zen <ZenithAngleInRadians> [--removeFinal20gcm2]
 #
 
 import numpy as np
