@@ -3,7 +3,7 @@
 # ==============================
 # Configuration parameters
 # ==============================
-SIMS_PER_SUB=1  #How many showers per submission
+SIMS_PER_SUB=1  #How many showers per submission, for Auger 1250 showers per atmosphere
 STARTID=10000
 # STARTID=30000
 # STARTID=80000
@@ -85,7 +85,7 @@ do
   FILENAME=$(printf "DAT%0*d" 6 $iFILE)
 
   echo Copying from Dirac: $SIMSLOC/${FILENAME}.tar.gz
-  dget -v --checksum --retries=3 $SIMSLOC/${FILENAME}.tar.gz $NEWLOC/${FILENAME}.tar.gz >> $NEWLOC/dget_${FILENAME}.log 2>&1
+  dget $SIMSLOC/${FILENAME}.tar.gz $NEWLOC/${FILENAME}.tar.gz >> $NEWLOC/dget_${FILENAME}.log 2>&1
   tar -xzvf $NEWLOC/${FILENAME}.tar.gz
   rm $NEWLOC/${FILENAME}.tar.gz
 
