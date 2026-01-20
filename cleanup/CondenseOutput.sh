@@ -26,12 +26,12 @@ ATMOSPHERES=(01 03 08 09)
 # Directory definitions
 # ===============================
 SCRIPTLOC="$( cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 ; pwd -P )"  # Where this script is
-DATALOC=PATH_TO_DATA_DIRECTORY  # Define the directory holding all the parsed CORSIKA information
-OUTLOC=PATH_TO_OUTPUT_DIRECTORY  # Define the directory to save the output, condensed text files
+PARENT_DATALOC=PATH_TO_DATA_DIRECTORY  # Define the parent directory holding all the parsed CORSIKA information
+PARENT_OUTLOC=PATH_TO_OUTPUT_DIRECTORY  # Define the parent directory to save the output, i.e. the condensed text files
 
 HEADERFILE="$SCRIPTLOC/CorsikaParser_OutputHeader.txt"  # Location of the header file for the condensed output files
 
-cd $DATALOC
+cd $PARENT_DATALOC
 
 for MODEL in "${HADRONIC_MODELS[@]}"
 do
@@ -41,13 +41,40 @@ do
     do
       for ATM in "${ATMOSPHERES[@]}"
       do
-        OUTFILELOC="$OUTLOC/$MODEL"
+        # Define locations of data and output
+        DATALOC="$PARENT_DATALOC/$MODEL/$ENERGY/$PRIMARY"
+        OUTLOC="$PARENT_DATALOC/$MODEL"
 
-        if [[ ! -d $OUTFILELOC ]]; then
-          mkdir -p $OUTFILELOC
+        if [[ ! -d $DATALOC ]]; then
+          echo "Data directory $DATALOC does not exist, skipping..."
+          continue
         fi
 
-        OUTPUTFILE="$OUTFILELOC/${PRIMARY}-${ENERGY}-atm${ATM}.txt"
+        if [[ ! -d $OUTLOC ]]; then
+          echo "Making output directory: $OUTLOC"
+          mkdir -p $OUTLOC
+        fi
+
+        cd $DATALOC
+
+        OUTPUTFILE="$OUTLOC/${PRIMARY}-${ENERGY}-atm${ATM}.txt"
+        echo "Creating condensed output file: $OUTPUTFILE"
         touch $OUTPUTFILE
-        cat HEADERFILE >> $OUTPUTFILE
-        
+
+        echo "Including header from $HEADERFILE"
+        cat $HEADERFILE >> $OUTPUTFILE
+
+        NUMFILES=$(ls -l DAT${ATM}* 2>/dev/null | wc -l)
+
+        echo "Appending data for atmosphere $ATM, total files to process: $NUMFILES"
+        cat DAT${ATM}* >> $OUTPUTFILE
+      done
+    done
+  done
+done
+
+echo "========================================================================="
+echo "Condensing complete. Now can run your analysis scripts on the condensed files in $PARENT_OUTLOC"
+echo "Have fun :)"
+echo "========================================================================="
+
