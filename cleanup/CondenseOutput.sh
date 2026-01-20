@@ -52,6 +52,12 @@ do
         cd $DATALOC
 
         OUTPUTFILE="$OUTLOC/${PRIMARY}-${ENERGY}-atm${ATM}.txt"
+
+        if [[ -f $OUTPUTFILE ]]; then
+          echo "Output file $OUTPUTFILE already exists, skipping to avoid overwriting..."
+          continue
+        fi
+
         echo "Creating condensed output file: $OUTPUTFILE"
         touch $OUTPUTFILE
 
