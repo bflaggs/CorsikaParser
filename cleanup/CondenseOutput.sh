@@ -1,18 +1,5 @@
 #!/bin/bash
 
-1. Start in the directory `/pbs/home/b/bflaggs/SimulationWork`
-2. `touch helium-18.0_18.5-atm03.txt`
-3. `cat Parsed_Sims_Header.txt >> helium-18.0_18.5-atm03.txt`
-4. `mv helium-18.0_18.5-atm0*.txt ./ParsedData/SIB23c/18.0_18.5/.`
-5. `cd ParsedData/SIB23c/18.0_18.5`
-6. `mv helium-18.0_18.5-atm0*.txt ./helium/.`
-7. `cd helium`
-8. Can check the total number of files for a specific atmosphere (here atm03) using command `ls -ltr DAT03*.txt | wc -l`. Output should be about 1250 per atmosphere.
-9. `cat DAT03* >> helium-18.0_18.5-atm03.txt`
-10. `mv helium-18.0_18.5-atm0*.txt ./../.`
-11. Then can run all analysis scripts in directory `/pbs/home/b/bflaggs/SimulationWork/MultivariateAnalysis` while reading in the .txt files desribed here.
-
-
 # ===============================
 # Loop parameters
 # ===============================
@@ -26,10 +13,17 @@ ATMOSPHERES=(01 03 08 09)
 # Directory definitions
 # ===============================
 SCRIPTLOC="$( cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 ; pwd -P )"  # Where this script is
-PARENT_DATALOC=PATH_TO_DATA_DIRECTORY  # Define the parent directory holding all the parsed CORSIKA information
-PARENT_OUTLOC=PATH_TO_OUTPUT_DIRECTORY  # Define the parent directory to save the output, i.e. the condensed text files
+PARENT_DATALOC=/home/bflaggs/Documents/Research/git_repos/CorsikaParser/TestDiracFiles/data  # Define the parent directory holding all the parsed CORSIKA information
+PARENT_OUTLOC=/home/bflaggs/Documents/Research/git_repos/CorsikaParser/TestDiracFiles/outputs  # Define the parent directory to save the output, i.e. the condensed text files
 
 HEADERFILE="$SCRIPTLOC/CorsikaParser_OutputHeader.txt"  # Location of the header file for the condensed output files
+
+echo "========================================================================="
+echo "Starting to condense CORSIKA parsed output files into single text files for each model/energyblock/primary/atmosphere"
+echo "Data locations: $PARENT_DATALOC/<model>/<energyblock>/<primary>/"
+echo "Output locations: $PARENT_OUTLOC/<model>/<energyblock>/" 
+echo "Including header from $HEADERFILE"
+echo "========================================================================="
 
 cd $PARENT_DATALOC
 
@@ -43,7 +37,7 @@ do
       do
         # Define locations of data and output
         DATALOC="$PARENT_DATALOC/$MODEL/$ENERGY/$PRIMARY"
-        OUTLOC="$PARENT_DATALOC/$MODEL"
+        OUTLOC="$PARENT_OUTLOC/$MODEL/$ENERGY"
 
         if [[ ! -d $DATALOC ]]; then
           echo "Data directory $DATALOC does not exist, skipping..."
@@ -61,7 +55,6 @@ do
         echo "Creating condensed output file: $OUTPUTFILE"
         touch $OUTPUTFILE
 
-        echo "Including header from $HEADERFILE"
         cat $HEADERFILE >> $OUTPUTFILE
 
         NUMFILES=$(ls -l DAT${ATM}* 2>/dev/null | wc -l)
