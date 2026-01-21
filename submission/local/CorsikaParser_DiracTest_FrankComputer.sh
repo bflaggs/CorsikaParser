@@ -29,8 +29,8 @@ ENERGYBLOCK=17.0_17.5
 # ==============================
 # Directory definitions
 # ==============================
-PARSERLOC="/cr/users/schroeder/testDirac/CorsikaParser"  #Where this script is
-WORKDIR="/cr/data/schroeder/diracCorsikaProcessing"
+PARSERLOC="/home/fgs/CorsikaParser"  #Where this script is
+WORKDIR="/home/fgs/diracCorsikaProcessing"
 
 # ==============================
 # Function: Process Data in Background
@@ -75,8 +75,8 @@ do
   for PRIMARYNAME in "${PRIMARYNAMES[@]}"
   do
     SIMSLOC=/auger/prod/d0008/corsika-78010_Auger_lib_FLUKA/$SIM_MODEL/$PRIMARYNAME/$ENERGYBLOCK/run01/  #Where corsika sims are
-    TEMPLOC=$WORKDIR/test/TempWorkArea #Directory to do temporary work
-    OUTLOC=$WORKDIR/test/CorsikaData/$SIM_MODEL/$ENERGYBLOCK/$PRIMARYNAME/  #Where to save cosika parsed data
+    TEMPLOC=$WORKDIR/TempWorkArea #Directory to do temporary work
+    OUTLOC=$WORKDIR/CorsikaData/$SIM_MODEL/$ENERGYBLOCK/$PRIMARYNAME/  #Where to save cosika parsed data
 
     let "IDFirst = (0) * $SIMS_PER_ATM + $ATM_IDS"
     let "IDLast = (1) * $SIMS_PER_ATM + $ATM_IDS - 1"
