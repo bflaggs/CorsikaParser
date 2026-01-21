@@ -32,6 +32,42 @@ ENERGYBLOCK=17.0_17.5
 PARSERLOC="/cr/users/schroeder/testDirac/CorsikaParser"  #Where this script is
 WORKDIR="/cr/data/schroeder/diracCorsikaProcessing"
 
+# ==============================
+# Function: Process Data in Background
+# ==============================
+process_shower() {
+    local FILENAME=$1
+    local NEWLOC=$2
+    local OUTLOC=$3
+    local EXE=$4
+    local EXE2=$5
+
+    echo "Untarring file: tar -xzvf $NEWLOC/${FILENAME}.tar.gz"
+    if tar -xzvf $NEWLOC/${FILENAME}.tar.gz -C $NEWLOC; then
+        echo "Removing unneeded tarball: rm $NEWLOC/${FILENAME}.tar.gz"
+        rm $NEWLOC/${FILENAME}.tar.gz
+
+        # Append filenames for debugging
+        echo $NEWLOC/$FILENAME >> $NEWLOC/FileNames.log
+
+        echo "Reading: $FILENAME"
+        MUON_DATA=$($EXE $FILENAME --thinned)
+        echo "Executing Corsika Block Parser: $MUON_DATA"
+        
+        ZENITH=$(echo $MUON_DATA | awk '{print $3}')
+        XMAX_DATA=$($EXE2 ${FILENAME}.long --zen $ZENITH --removeFinal20gcm2)
+        echo "Executing Corsika Longitudinal Parser: $XMAX_DATA"
+
+        # Write output
+        echo $MUON_DATA $XMAX_DATA > $OUTLOC/${FILENAME}.txt
+
+        echo "Removing untarred files..."
+        rm $NEWLOC/$FILENAME
+        rm $NEWLOC/${FILENAME}.long
+    else
+        echo "ERROR: Failed to untar $FILENAME"
+    fi
+}
 
 # Loop through atmospheric models and primaries
 for ATM_IDS in "${ATM_IDS[@]}"
@@ -71,36 +107,23 @@ do
 
     for ((iFILE=$IDFirst; iFILE<=$IDLast; iFILE++))
     do
-
       FILENAME=$(printf "DAT%0*d" 6 $iFILE)
 
       echo Copying from Dirac: $SIMSLOC${FILENAME}.tar.gz
       echo command: dget $SIMSLOC${FILENAME}.tar.gz $NEWLOC/
       dget $SIMSLOC${FILENAME}.tar.gz $NEWLOC/ >> $NEWLOC/dget_${FILENAME}.log 2>&1
       
-      echo Untarring file: tar -xzvf $NEWLOC/${FILENAME}.tar.gz
-      tar -xzvf $NEWLOC/${FILENAME}.tar.gz
-      
-      echo Removing unneeded tarball: rm $NEWLOC/${FILENAME}.tar.gz
-      rm $NEWLOC/${FILENAME}.tar.gz
-
-      # For debugging and tracking downloaded files
-      echo $NEWLOC/$FILENAME > $NEWLOC/FileNames
-
-      echo Reading: $FILENAME
-      MUON_DATA=$($EXE $FILENAME --thinned)
-      echo Executing Corsika Block Parser: $MUON_DATA
-      
-      ZENITH=$(echo $MUON_DATA | awk '{print $3}')
-      XMAX_DATA=$($EXE2 ${FILENAME}.long --zen $ZENITH --removeFinal20gcm2)
-      echo Executing Corsika Longitudinal Parser: $XMAX_DATA
-
-      echo $MUON_DATA $XMAX_DATA > $OUTLOC/${FILENAME}.txt
-
-      echo Removing untarred files: rm $NEWLOC/$FILENAME rm $NEWLOC/$FILENAME.long
-      rm $NEWLOC/$FILENAME
-      rm $NEWLOC/${FILENAME}.long
+      # Check if download was successful before processing
+      if [ -f "$NEWLOC/${FILENAME}.tar.gz" ]; then
+          # Run untarring and processing of file in the background (with &)
+          process_shower "$FILENAME" "$NEWLOC" "$OUTLOC" "$EXE" "$EXE2" & 
+      else
+          echo "Download failed for $FILENAME"
+      fi
     done
+
+    # Wait for background processes to finish before moving to next primary/atmosphere
+    wait
 
   done  # End loop over primaries
 done    # End loop over atmospheric models
