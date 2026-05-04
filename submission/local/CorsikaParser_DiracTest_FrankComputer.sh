@@ -39,8 +39,8 @@ fi
 # ==============================
 # Directory definitions
 # ==============================
-PARSERLOC="/home/fgs/CorsikaParser"  #Where this script is
-WORKDIR="/home/fgs/diracCorsikaProcessing"
+PARSERLOC="/cr/users/schroeder/testDirac/CorsikaParser"  #Where this script is
+WORKDIR="/cr/data/schroeder/diracCorsikaProcessing"
 
 # ==============================
 # Function: Process Data in Background
