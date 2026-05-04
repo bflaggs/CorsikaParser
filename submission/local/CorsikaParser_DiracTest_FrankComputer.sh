@@ -12,19 +12,29 @@ ATM_IDS=(10000 30000 80000 90000)
 # Array of PRIMARYNAME values to loop over
 PRIMARYNAMES=(proton helium oxygen iron)
 
-SIM_MODEL=EPOS_LHC-R
+# ==================================
+# Current generation hadronic models
+# ==================================
+# SIM_MODEL=EPOS_LHC-R
 # SIM_MODEL=QGSJET-III.01
 # SIM_MODEL=Sibyll-2.3e
 
-# ENERGYBLOCK=16.0_16.5
-# ENERGYBLOCK=16.5_17.0
-ENERGYBLOCK=17.0_17.5
-# ENERGYBLOCK=17.5_18.0
-# ENERGYBLOCK=18.0_18.5
-# ENERGYBLOCK=18.5_19.0
-# ENERGYBLOCK=19.0_19.5
-# ENERGYBLOCK=19.5_20.0
-# ENERGYBLOCK=20.0_20.5
+# ==================================
+# Previous generation hadronic models
+# ==================================
+SIM_MODEL=EPOS_LHC
+# SIM_MODEL=QGSJET-II-04
+# SIM_MODEL=Sibyll2.3d
+
+# Statement to define ENERGYBLOCK values to loop over and header path to model data
+# Previous generation models have different final energy bin and different header path than current generation models
+if [[ $SIM_MODEL == "EPOS_LHC" || $SIM_MODEL == "QGSJET-II-04" || $SIM_MODEL == "Sibyll2.3d"]]; then
+    ENERGYBLOCKS=(16.0_16.5 16.5_17.0 17.0_17.5 17.5_18.0 18.0_18.5 18.5_19.0 19.0_19.5 19.5_20.0 20.0_20.2)
+    SIMSLOCHEADER="/auger/prod/d0005/corsika-77420_NPlib_FLUKAINFN"
+else
+    ENERGYBLOCKS=(16.0_16.5 16.5_17.0 17.0_17.5 17.5_18.0 18.0_18.5 18.5_19.0 19.0_19.5 19.5_20.0 20.0_20.5)
+    SIMSLOCHEADER="/auger/prod/d0008/corsika-78010_Auger_lib_FLUKA"
+fi
 
 # ==============================
 # Directory definitions
@@ -69,64 +79,67 @@ process_shower() {
     fi
 }
 
-# Loop through atmospheric models and primaries
+# Loop through atmospheric models, primaries, and energy blocks
 for ATM_IDS in "${ATM_IDS[@]}"
 do
   for PRIMARYNAME in "${PRIMARYNAMES[@]}"
   do
-    SIMSLOC=/auger/prod/d0008/corsika-78010_Auger_lib_FLUKA/$SIM_MODEL/$PRIMARYNAME/$ENERGYBLOCK/run01/  #Where corsika sims are
-    TEMPLOC=$WORKDIR/TempWorkArea #Directory to do temporary work
-    OUTLOC=$WORKDIR/CorsikaData/$SIM_MODEL/$ENERGYBLOCK/$PRIMARYNAME/  #Where to save cosika parsed data
-
-    let "IDFirst = (0) * $SIMS_PER_ATM + $ATM_IDS"
-    let "IDLast = (1) * $SIMS_PER_ATM + $ATM_IDS - 1"
-
-    NEWLOC=$TEMPLOC/RUN${SIM_MODEL}_${PRIMARYNAME}_${IDFirst}_${IDLast}
-
-    if [[ -d $NEWLOC ]]; then
-      rm -r $NEWLOC
-    fi
-
-    mkdir -p $NEWLOC
-
-    if [[ ! -d $OUTLOC ]]; then
-      mkdir -p $OUTLOC
-    fi
-
-    cd $NEWLOC
-    echo Work done in directory: $NEWLOC
-    echo Output saved in directory: $OUTLOC
-
-    # Load any needed environment variables here...
-
-    EXE=$PARSERLOC/corsikaReader
-    EXE2=$PARSERLOC/ParseAndFitLongitudinalProfile_Auger.py
-
-    echo Corsika Block Parser: $EXE
-    echo Corsika Longitudinal Parser: $EXE2
-
-    for ((iFILE=$IDFirst; iFILE<=$IDLast; iFILE++))
+    for ENERGYBLOCK in "${ENERGYBLOCKS[@]}"
     do
-      FILENAME=$(printf "DAT%0*d" 6 $iFILE)
+      SIMSLOC=$SIMSLOCHEADER/$SIM_MODEL/$PRIMARYNAME/$ENERGYBLOCK/run01/  #Where corsika sims are
+      TEMPLOC=$WORKDIR/TempWorkArea #Directory to do temporary work
+      OUTLOC=$WORKDIR/CorsikaData/$SIM_MODEL/$ENERGYBLOCK/$PRIMARYNAME/  #Where to save corsika parsed data
 
-      echo Copying from Dirac: $SIMSLOC${FILENAME}.tar.gz
-      echo command: dget $SIMSLOC${FILENAME}.tar.gz $NEWLOC/
-      dget $SIMSLOC${FILENAME}.tar.gz $NEWLOC/ >> $NEWLOC/dget_${FILENAME}.log 2>&1
-      
-      # Check if download was successful before processing
-      if [ -f "$NEWLOC/${FILENAME}.tar.gz" ]; then
-          # Run untarring and processing of file in the background (with &)
-          process_shower "$FILENAME" "$NEWLOC" "$OUTLOC" "$EXE" "$EXE2" & 
-      else
-          echo "Download failed for $FILENAME"
+      let "IDFirst = (0) * $SIMS_PER_ATM + $ATM_IDS"
+      let "IDLast = (1) * $SIMS_PER_ATM + $ATM_IDS - 1"
+
+      NEWLOC=$TEMPLOC/RUN${SIM_MODEL}_${PRIMARYNAME}_${IDFirst}_${IDLast}
+
+      if [[ -d $NEWLOC ]]; then
+        rm -r $NEWLOC
       fi
-    done
 
-    # Wait for background processes to finish before moving to next primary/atmosphere
-    wait
+      mkdir -p $NEWLOC
 
-  done  # End loop over primaries
-done    # End loop over atmospheric models
+      if [[ ! -d $OUTLOC ]]; then
+        mkdir -p $OUTLOC
+      fi
+
+      cd $NEWLOC
+      echo Work done in directory: $NEWLOC
+      echo Output saved in directory: $OUTLOC
+
+      # Load any needed environment variables here...
+
+      EXE=$PARSERLOC/corsikaReader
+      EXE2=$PARSERLOC/ParseAndFitLongitudinalProfile_Auger.py
+
+      echo Corsika Block Parser: $EXE
+      echo Corsika Longitudinal Parser: $EXE2
+
+      for ((iFILE=$IDFirst; iFILE<=$IDLast; iFILE++))
+      do
+        FILENAME=$(printf "DAT%0*d" 6 $iFILE)
+
+        echo Copying from Dirac: $SIMSLOC${FILENAME}.tar.gz
+        echo command: dget $SIMSLOC${FILENAME}.tar.gz $NEWLOC/
+        dget $SIMSLOC${FILENAME}.tar.gz $NEWLOC/ >> $NEWLOC/dget_${FILENAME}.log 2>&1
+        
+        # Check if download was successful before processing
+        if [ -f "$NEWLOC/${FILENAME}.tar.gz" ]; then
+            # Run untarring and processing of file in the background (with &)
+            process_shower "$FILENAME" "$NEWLOC" "$OUTLOC" "$EXE" "$EXE2" & 
+        else
+            echo "Download failed for $FILENAME"
+        fi
+      done
+
+      # Wait for background processes to finish before moving to next energyblock/primary/atmosphere
+      wait
+
+    done  # End loop over energy blocks
+  done    # End loop over primaries
+done      # End loop over atmospheric models
 
 date
 echo DONE!
