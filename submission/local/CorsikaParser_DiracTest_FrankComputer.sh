@@ -4,11 +4,10 @@ date
 # ==============================
 # Configuration parameters
 # ==============================
-SIMS_PER_ATM=1250  #How many showers per atmosphere for Auger
 
+SIMS_PER_ATM=1250  #How many showers per atmosphere for Auger
 # Array of ATM_IDS values to loop over, 4 atmospheres for each model/primary/energyblock
 ATM_IDS=(10000 30000 80000 90000)
-
 # Array of PRIMARYNAME values to loop over
 PRIMARYNAMES=(proton helium oxygen iron)
 
@@ -28,7 +27,7 @@ SIM_MODEL=EPOS_LHC
 
 # Statement to define ENERGYBLOCK values to loop over and header path to model data
 # Previous generation models have different final energy bin and different header path than current generation models
-if [[ $SIM_MODEL == "EPOS_LHC" || $SIM_MODEL == "QGSJET-II-04" || $SIM_MODEL == "Sibyll2.3d"]]; then
+if [[ $SIM_MODEL == "EPOS_LHC" || $SIM_MODEL == "QGSJET-II-04" || $SIM_MODEL == "Sibyll2.3d" ]]; then
     ENERGYBLOCKS=(16.0_16.5 16.5_17.0 17.0_17.5 17.5_18.0 18.0_18.5 18.5_19.0 19.0_19.5 19.5_20.0 20.0_20.2)
     SIMSLOCHEADER="/auger/prod/d0005/corsika-77420_NPlib_FLUKAINFN"
 else
@@ -79,6 +78,20 @@ process_shower() {
     fi
 }
 
+# ==============================
+# Function: Check if output file exists and is valid
+# Uses only the first column to check validity (e.g. primaryID) as proxy for whole file.
+# Returns 0 (valid) or 1 (invalid).
+# ==============================
+has_valid_output() {
+    local OUTFILE=$1
+    [[ -f "$OUTFILE" && -s "$OUTFILE" ]] || return 1
+    awk 'NR==1 {
+        if ($1 + 0 == 0)           exit 1   # zero in first column
+        exit 0                              # anything else
+    }' "$OUTFILE"
+}
+
 # Loop through atmospheric models, primaries, and energy blocks
 for ATM_IDS in "${ATM_IDS[@]}"
 do
@@ -120,6 +133,13 @@ do
       for ((iFILE=$IDFirst; iFILE<=$IDLast; iFILE++))
       do
         FILENAME=$(printf "DAT%0*d" 6 $iFILE)
+        OUTFILE=$OUTLOC/${FILENAME}.txt
+
+        # Skip if output already exists with valid (non-zero) data
+        if has_valid_output "$OUTFILE"; then
+          echo "Skipping $FILENAME, valid output already exists"
+          continue
+        fi
 
         echo Copying from Dirac: $SIMSLOC${FILENAME}.tar.gz
         echo command: dget $SIMSLOC${FILENAME}.tar.gz $NEWLOC/
